@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     images: [
       {
-        url: "/images/defaults/og-default.png",
+        url: "/images/defaults/og-default.webp",
         width: 1200,
         height: 630,
         alt: "Raising On Purpose",
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Raising On Purpose",
     description: siteConfig.description,
-    images: ["/images/defaults/og-default.png"],
+    images: ["/images/defaults/og-default.webp"],
   },
   robots: {
     index: true,

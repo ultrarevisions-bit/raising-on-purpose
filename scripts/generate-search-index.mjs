@@ -30,7 +30,7 @@ const items = files
       category: data.category || "real-talk",
       excerpt: data.excerpt || data.description || "",
       date: data.date || "",
-      featuredImage: data.featuredImage || "/images/defaults/featured.png",
+      featuredImage: data.featuredImage || "/images/defaults/featured.webp",
     };
   })
   .sort((a, b) => (b.date || "").localeCompare(a.date || ""));

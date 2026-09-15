@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "prebuild": "node scripts/generate-search-index.mjs",
     "assets:images": "powershell -ExecutionPolicy Bypass -File scripts/generate-images.ps1",
-    "assets:pdfs": "node scripts/generate-pdfs.mjs"
+    "assets:pdfs": "node scripts/generate-pdfs.mjs",
+    "assets:fix": "node scripts/normalize-images.mjs"
   },
   "dependencies": {
     "@mdx-js/react": "^3.1.0",

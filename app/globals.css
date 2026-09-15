@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-cream-100 text-ink font-body;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading text-ink font-semibold leading-tight;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  h2 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h3 {
+    @apply text-xl md:text-2xl;
+  }
+
+  a {
+    @apply text-terracotta-600 underline underline-offset-2 decoration-terracotta-200
+           hover:text-terracotta-700 hover:decoration-terracotta-500 transition-colors duration-200;
+  }
+
+  img {
+    @apply rounded-lg;
+  }
+
+  /* MDX prose styles */
+  .prose {
+    @apply max-w-none text-ink leading-relaxed;
+  }
+
+  .prose > * + * {
+    @apply mt-6;
+  }
+
+  .prose h2 {
+    @apply mt-12 mb-4;
+  }
+
+  .prose h3 {
+    @apply mt-8 mb-3;
+  }
+
+  .prose p {
+    @apply text-base md:text-lg leading-relaxed;
+  }
+
+  .prose ul,
+  .prose ol {
+    @apply pl-6 space-y-2;
+  }
+
+  .prose ul {
+    @apply list-disc;
+  }
+
+  .prose ol {
+    @apply list-decimal;
+  }
+
+  .prose li {
+    @apply text-base md:text-lg;
+  }
+
+  .prose blockquote {
+    @apply border-l-4 border-terracotta-300 pl-6 italic text-ink-light my-8;
+  }
+
+  .prose strong {
+    @apply font-semibold text-ink;
+  }
+
+  .prose code {
+    @apply bg-cream-200 text-terracotta-700 px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+
+  .prose pre {
+    @apply bg-ink text-cream-100 p-4 rounded-lg overflow-x-auto my-6;
+  }
+
+  .prose pre code {
+    @apply bg-transparent text-cream-100 p-0;
+  }
+
+  .prose img {
+    @apply rounded-lg my-8;
+  }
+
+  .prose hr {
+    @apply border-cream-300 my-12;
+  }
+
+  .prose a {
+    @apply text-terracotta-600 underline underline-offset-2 decoration-terracotta-200
+           hover:text-terracotta-700 hover:decoration-terracotta-500;
+  }
+
+  /* Pin-friendly card hover */
+  .pin-card {
+    @apply relative overflow-hidden rounded-xl bg-white shadow-sm
+           hover:shadow-lg transition-shadow duration-300;
+  }
+
+  .pin-card:hover .pin-overlay {
+    @apply opacity-100;
+  }
+
+  .pin-overlay {
+    @apply absolute inset-0 bg-ink/40 flex items-center justify-center opacity-0
+           transition-opacity duration-300 pointer-events-none;
+  }
+
+  /* Newsletter form */
+  .newsletter-input {
+    @apply w-full px-4 py-3 rounded-lg border border-cream-300 bg-white text-ink
+           placeholder:text-ink-muted focus:outline-none focus:ring-2
+           focus:ring-terracotta-300 focus:border-terracotta-400 transition-all;
+  }
+
+  .newsletter-btn {
+    @apply w-full px-6 py-3 rounded-lg bg-terracotta-500 text-white font-body
+           font-medium hover:bg-terracotta-600 active:bg-terracotta-700
+           transition-colors duration-200;
+  }
+
+  /* Skip to content */
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4
+           focus:z-50 focus:bg-terracotta-500 focus:text-white focus:px-4
+           focus:py-2 focus:rounded-lg;
+  }
+}

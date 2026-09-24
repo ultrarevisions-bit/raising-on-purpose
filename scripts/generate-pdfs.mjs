@@ -107,9 +107,7 @@ function drawBoxLine({ x, y, w, h, label, size = 12 }) {
   ];
 }
 
-// ============================================
-// 10 PRINTABLES
-// ============================================
+
 
 function makeChoreChart() {
   const jobs = ["Put my cup in the sink", "Throw away my trash", "Pick up toys", "Match shoes", "Make my bed", "Feed the cat"];
@@ -118,7 +116,7 @@ function makeChoreChart() {
     subtitle: "One job at a time. Print it, hang it, let it nag for you.",
     contentCommands: [
       "0.78 0.404 0.275 rg", `BT /F1 14 Tf 36 660 Td (My jobs this week) Tj ET`,
-      ...drawCheckableGrid({ x: MARGIN, y: 640, box: 14, rows: jobs.length, rowLabels: jobs, cols: 8 }),
+      ...drawCheckableGrid({ x: MARGIN, y: 640, box: 14, rows: 6, rowLabels: ["Put my cup in the sink", "Throw away my trash", "Pick up toys", "Match shoes", "Make my bed", "Feed the cat"], cols: 8 }),
       ...drawTextLine({ x: 36, y: 470, size: 10, font: "F2", text: "Colour one space each time you finish a job." }),
       ...drawTextLine({ x: 36, y: 452, size: 10, font: "F2", text: "Raising On Purpose | raisingonpurpose.vercel.app" }),
     ],
@@ -132,7 +130,7 @@ function makeFeelingsChart() {
   for (let i = 0; i < 8; i++) {
     const col = i % 2; const row = Math.floor(i / 2);
     const x = 36 + col * 285; const y = startY - row * 60;
-    feelCommands.push(...drawBoxLine({ x, y, w: 255, h: 44, label: ["Happy","Sad","Angry","Worried","Tired","Excited","Calm","Silly"][i] }));
+    feelCommands.push(...drawBoxLine({ x, y, w: 255, h: 44, label: feelings[i] }));
   }
   return makePdf({
     title: "How Do I Feel?",
@@ -185,17 +183,16 @@ function makeMealPlanner() {
   const mpCommands = []; const mStartY = 640;
   const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
   for (let i = 0; i < 8; i++) {
-    const y = mStartY - i * 38;
-    for (let i = 0; i < 8; i++) {
-    const y = mStartY - i * 38;
+    const y = 640 - i * 38;
     if (i < 7) {
       mpCommands.push("0.78 0.404 0.275 RG", "1.5 w", `36 ${y} m 286 ${y} l S`, `286 ${y} m 286 ${y - 30} l S`, `286 ${y - 30} m 36 ${y - 30} l S`, `36 ${y - 30} m 36 ${y} l S`, `BT /F1 11 Tf 42 ${y - 12} Td (${escapeText(["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i])}) Tj ET`, `BT /F2 9 Tf 42 ${y - 22} Td (Lunch) Tj ET`, `BT /F2 9 Tf 150 ${y - 12} Td (Dinner) Tj ET`);
     } else {
-      const y2 = mStartY - 7 * 38;
+      const y2 = 640 - 7 * 38;
       mpCommands.push("0.78 0.404 0.275 RG", "1.5 w", `36 ${y2} m 576 ${y2} l S`, `BT /F1 11 Tf 42 ${y2 - 12} Td (Grocery List) Tj ET`);
       for (let g = 0; g < 3; g++) { const gy = y2 - 20 - g * 22; mpCommands.push("0.78 0.404 0.275 RG", "1.5 w", `36 ${gy + 20} m 576 ${gy + 20} l S`, `BT /F2 9 Tf 42 ${gy + 8} Td ( ) Tj ET`); }
     }
   }
+  return makePdf({ title: "Weekly Meal Planner", subtitle: "Plan once, shop once, cook calm all week.", contentCommands: mpCommands });
 }
 
 function makePottyTrainingChart() {
@@ -205,10 +202,11 @@ function makePottyTrainingChart() {
     const x1 = 36 + col * 75;
     const y1 = 600 - Math.floor(i / 2) * 55 - (i % 2 ? 25 : 0);
     const boxW = 68; const boxH = 45; const day = i + 1;
-    pottyCmds.push("0.78 0.404 0.275 RG", "1.5 w", `${x1} ${y1 + 45} m ${x1} ${y1} l S`, `${x1 + 68} ${y1 + 45} m ${x1 + 68} ${y1} l S`, `${x1 + 68} ${y1 + 45} m ${x1} ${y1 + 45} l S`, `${x1} ${y1} m ${x1 + 68} ${y1} l S`, `BT /F1 10 Tf ${x1 + 10} ${y1 + 35} Td (Day ${day}) Tj ET`, `${x1 + 5} ${y1 + 5} m ${x1 + 63} ${y1 + 40} l S`, `${x1 + 5} ${y1 + 40} m ${x1 + 63} ${y1 + 5} l S`);
+    pottyCmds.push("0.78 0.404 0.275 RG", "1.5 w", `${x1} ${y1 + boxH} m ${x1} ${y1} l S`, `${x1 + boxW} ${y1 + boxH} m ${x1 + boxW} ${y1} l S`, `${x1 + boxW} ${y1 + boxH} m ${x1} ${y1 + boxH} l S`, `${x1} ${y1} m ${x1 + boxW} ${y1} l S`, `BT /F1 10 Tf ${x1 + 10} ${y1 + boxH - 10} Td (Day ${day}) Tj ET`, `${x1 + 5} ${y1 + 5} m ${x1 + boxW - 5} ${y1 + boxH - 5} l S`, `${x1 + 5} ${y1 + boxH - 5} m ${x1 + boxW - 5} ${y1 + 5} l S`);
   }
   return makePdf({ title: "Potty Training Chart", subtitle: "Two weeks of wins. Every dry day is a celebration.", contentCommands: pottyCmds });
 }
+
 
 function makeScreenTimeTracker() {
   const stCmds = ["0.78 0.404 0.275 rg", `BT /F1 14 Tf 36 660 Td (Screen Time Tracker) Tj ET`];
@@ -236,6 +234,10 @@ function makeScreenTimeContract() {
   stcCmds.push("0.78 0.404 0.275 rg", `BT /F2 10 Tf 36 180 Td (Child signature: ________________   Date: ________) Tj ET`, `BT /F2 10 Tf 36 160 Td (Parent signature: ________________   Date: ________) Tj ET`, `BT /F2 10 Tf 36 140 Td (We review this together every month.) Tj ET`);
   return makePdf({ title: "Screen Time Agreement", subtitle: "Clear limits. Fewer battles. Signed together.", contentCommands: stcCmds });
 }
+
+
+
+
 
 // ============================================
 // MAIN
@@ -268,4 +270,3 @@ function core() {
 }
 
 core();
-

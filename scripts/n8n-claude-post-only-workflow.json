@@ -1,0 +1,428 @@
+{
+  "name": "Raising On Purpose - Claude Post Only (Manual Images)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyDay",
+              "hour": 6,
+              "minute": 0
+            },
+            {
+              "mode": "everyDay",
+              "hour": 14,
+              "minute": 0
+            }
+          ]
+        },
+        "sheetId": "YOUR_GOOGLE_SHEET_ID_HERE",
+        "range": "A:P",
+        "options": {
+          "valueRenderMode": "FORMATTED_VALUE"
+        }
+      },
+      "id": "1",
+      "name": "Google Sheets - Poll Twice Daily (6AM & 2PM)",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": "Google Sheets Account"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Sheet columns: A=Keyword, B=Search Volume, C=Competition, D=Blog Post Topic, E=Category, F=Stage, G=Status, H=Notes, I=Featured\nconst COL = { Keyword:'A', Topic:'D', Category:'E', Stage:'F', Status:'G', Notes:'H', Featured:'I' };\nfunction norm(s){ return String(s).toLowerCase().replace(/[\\s_-]+/g,''); }\nfunction getVal(item, names, colLetter){\n  const json = item.json || {};\n  for (const key of Object.keys(json)){\n    for (const name of names){ if (norm(key) === norm(name)) return json[key]; }\n  }\n  if (colLetter && json[colLetter] !== undefined) return json[colLetter];\n  const idx = colLetter ? colLetter.charCodeAt(0) - 65 : -1;\n  if (idx >= 0 && json[idx] !== undefined) return json[idx];\n  return undefined;\n}\n\nif (items.length > 0) console.log('Filter fields: ' + JSON.stringify(Object.keys(items[0].json || {})));\n\nconst ready = [];\nfor (const item of items) {\n  const status = String(getVal(item, ['Status'], COL.Status) || '').trim().toLowerCase();\n  if (status !== 'ready to write' && status !== 'ready') continue;\n  const topic = getVal(item, ['Blog Post Topic (Pinterest Format)','Blog Post Topic','Topic'], COL.Topic);\n  const category = getVal(item, ['Category'], COL.Category);\n  const keyword = getVal(item, ['Keyword','Focus Keyword'], COL.Keyword);\n  if (!topic || !category || !keyword) { console.warn('Skip ready row missing Topic/Category/Keyword'); continue; }\n  const rawIdx = item.index;\n  ready.push({ item, rowIndex: (rawIdx !== undefined && rawIdx !== null) ? rawIdx : 0 });\n}\n\nconsole.log('Ready topics: ' + ready.length + ' of ' + items.length);\nif (ready.length === 0) return [];\nready.sort((a,b) => a.rowIndex - b.rowIndex);\nconsole.log('Processing top ready row index: ' + ready[0].rowIndex);\nreturn [ready[0].item];"
+      },
+      "id": "2",
+      "name": "Filter - One Ready Topic",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        460,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const COL = { Keyword:'A', Topic:'D', Category:'E', Stage:'F', Status:'G', Notes:'H', Featured:'I' };\nfunction norm(s){ return String(s).toLowerCase().replace(/[\\s_-]+/g,''); }\nfunction getVal(item, names, colLetter){\n  const json = item.json || {};\n  for (const key of Object.keys(json)){\n    for (const name of names){ if (norm(key) === norm(name)) return json[key]; }\n  }\n  if (colLetter && json[colLetter] !== undefined) return json[colLetter];\n  const idx = colLetter ? colLetter.charCodeAt(0) - 65 : -1;\n  if (idx >= 0 && json[idx] !== undefined) return json[idx];\n  return undefined;\n}\n\nconst first = items[0];\nconst rawIdx = first.index;\n\nconst categoryMap = {\n  'intentional parenting': 'intentional-parenting',\n  'intentional parenting & discipline': 'intentional-parenting',\n  'real talk': 'real-talk',\n  'real talk / unfiltered motherhood': 'real-talk',\n  'toddler': 'toddler',\n  'toddler & early childhood': 'toddler',\n  'family routines': 'family-routines',\n  'family routines & rhythms': 'family-routines',\n  'printables': 'printables',\n  'printables & family tools': 'printables'\n};\n\nconst topicRaw = getVal(first, ['Blog Post Topic (Pinterest Format)','Blog Post Topic','Topic'], COL.Topic);\nconst categoryRaw = getVal(first, ['Category'], COL.Category);\nconst keywordRaw = getVal(first, ['Keyword','Focus Keyword'], COL.Keyword);\nconst stageRaw = getVal(first, ['Stage'], COL.Stage);\nconst notesRaw = getVal(first, ['Notes','Context'], COL.Notes);\nconst featuredRaw = getVal(first, ['Featured'], COL.Featured);\n\nconst normalizedCategory = categoryMap[String(categoryRaw || '').toLowerCase()]\n  || String(categoryRaw || '').toLowerCase().replace(/\\s+/g, '-');\n\nconst slug = String(topicRaw || '')\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, '-')\n  .replace(/(^-|-$)/g, '')\n  .substring(0, 80);\n\nconst stageMap = {\n  'intentional-parenting': ['newborn','baby','toddler','preschooler'],\n  'real-talk': ['newborn','baby','toddler','preschooler'],\n  'toddler': ['toddler','preschooler'],\n  'family-routines': ['baby','toddler','preschooler'],\n  'printables': ['toddler','preschooler']\n};\nconst stage = (stageRaw && String(stageRaw).trim()) || (stageMap[normalizedCategory] || ['toddler'])[0];\n\nconst now = new Date();\nconst date = now.toISOString().split('T')[0];\nconst rowIndex = (rawIdx !== undefined && rawIdx !== null) ? rawIdx : 0;\n\nconsole.log('Preparing: ' + topicRaw + ' -> ' + slug);\n\nreturn [{\n  json: {\n    rowIndex,\n    topic: String(topicRaw || '').trim(),\n    titleHint: String(topicRaw || '').trim(),\n    category: String(categoryRaw || '').trim(),\n    normalizedCategory,\n    focusKeyword: String(keywordRaw || '').trim(),\n    stage,\n    slug,\n    date,\n    updated: date,\n    additionalContext: notesRaw ? String(notesRaw).trim() : '',\n    notes: notesRaw ? String(notesRaw).trim() : '',\n    featured: featuredRaw ? String(featuredRaw).toLowerCase() === 'true' : false\n  }\n}];"
+      },
+      "id": "3",
+      "name": "Prepare Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        700,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\":\"claude-sonnet-5\",\"max_tokens\":4000,\"thinking\":{\"type\":\"disabled\"},\"system\":\"You are the writer for Raising On Purpose, an honest, unfiltered parenting blog. Voice: the friend who texts you at midnight with 'okay but seriously this actually worked.' Warm, practical, occasionally funny, never performative. You have real opinions delivered kindly.\\n\\nREADER: Parents 25-40, navigating toddler years, sleep-deprived, scrolling at 11pm for something that actually helps, wants realistic not Pinterest-perfect, values 'this saved my sanity' over 'picture-perfect childhood'.\\n\\nHARD RULES, NO EXCEPTIONS:\\n1. NEVER use an em dash anywhere. Use a comma, colon, period, or restructure the sentence instead.\\n2. No sentence over 25 words. Vary sentence length deliberately: short, then longer, then mid-length. Never three sentences in a row with the same rhythm.\\n3. Intro is 2 paragraphs maximum. Get to the point immediately. No slow warm-up, no rhetorical question with an obvious answer.\\n4. No horizontal dividers or decorative separators. Use headings and white space.\\n5. Use bullets sparingly, only for genuinely separate items. If points flow naturally, write as prose.\\n6. Never open two posts the same way. Find a distinct entry point for this specific post.\\n7. Write with real specificity: name an actual age, behavior, or concrete result instead of a vague generality, at least 3 times per post.\\n8. It is fine to start a sentence with 'And' or 'But', end with a preposition, or use a sentence fragment for effect. Contractions are good ('it's' not 'it is').\\n\\nBANNED PATTERNS (each one is a known AI-writing tell, avoid all of them):\\n- Template phrases: 'whether you're a new parent or a seasoned one', 'from tantrums to triumphs, there's something for everyone', 'no matter your parenting style', 'in this post we'll cover', 'now more than ever parenting is hard', 'in today's fast-paced world', 'it's no secret that toddlers are difficult'\\n- Hollow superlatives with nothing backing them up: 'game-changing tip', 'must-try strategy', 'the best approach' without saying why\\n- Hedging/risk-averse language: 'some parents may find', 'in certain situations', 'it depends on your child'. Replace with an actual point of view, even a small one.\\n- Third-person abstraction: not 'many parents struggle with bedtime' but 'if you've ever carried a screaming toddler back to bed for the fifth time at 2am, you know exactly what I mean'\\n- Repeating the same descriptive word. Rotate: hard / exhausting / draining / brutal. Tantrum / meltdown / explosion / blowup. Tip / strategy / approach / thing that worked.\\n- Overly smooth prose where every sentence sounds equally refined. A little rough is human.\\n- Perfectly logical flow with a linking phrase every time. It's fine to jump, circle back, or say 'but here's the thing' mid-thought.\\n\\nSEO RULES:\\n- Focus keyword appears naturally in first paragraph, 3-5 times total, never forced.\\n- Meta description EXACTLY 17-20 words, includes focus keyword, reads as compelling one-sentence summary. Example: 'Handle toddler bedtime tantrums without losing your cool using these five realistic, parent-tested strategies.'\\n- Headings (##) must be descriptive and specific, not keyword-stuffed. Example: 'Why Bedtime Triggers Meltdowns in Two-Year-Olds' not 'Toddler Bedtime Tips'.\\n- Slug must be all lowercase, hyphens only, closely matching focus keyword.\\n\\nSTRUCTURE:\\n- Use H2 headers, short 2-3 sentence paragraphs, occasional bullets. Word count 1000-1800 for guides, 800-1200 for personal essays.\\n- End with a gentle CTA.\\n\\nBEFORE FINALIZING, CHECK:\\n- No em dashes anywhere\\n- No sentence over 25 words\\n- No banned template phrases\\n- Vocabulary rotated, not repeated\\n- At least one real opinion stated plainly\\n- At least 3 specific ages/behaviors/examples\\n- Focus keyword natural in paragraph one\\n- Meta description 17-20 words exactly\\n- Valid JSON only — never use literal double quotes inside string values (breaks parsing). Use single quotes or remove quotes entirely. This applies to every field, especially excerpt, meta description, and bodyMarkdown.\\n\\nReturn ONLY valid JSON with keys: title (50-60 chars, includes focus keyword), description (17-20 words, includes focus keyword, no em dashes), excerpt (2-3 sentences), keywords (array of 5-7 strings), bodyMarkdown (full body with H2 headers, NO frontmatter), downloadIdea (string or null), downloadType (chore-chart or feelings-chart or routine-cards or checklist or null), featured (boolean).\",\"messages\":[{\"role\":\"user\",\"content\":\"Write a complete blog post.\\\\nTOPIC: {{ $json.topic }}\\\\nTITLE HINT: {{ $json.titleHint || $json.topic }}\\\\nCATEGORY: {{ $json.normalizedCategory }}\\\\nFOCUS KEYWORD: {{ $json.focusKeyword }}\\\\nSTAGE: {{ $json.stage }}\\\\nAdditional context: {{ $json.additionalContext || 'None' }}\"}]}",
+        "options": {},
+        "headers": [
+          {
+            "name": "anthropic-version",
+            "value": "2023-06-01"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          }
+        ],
+        "sendHeaders": true
+      },
+      "id": "4",
+      "name": "Claude - Generate Post Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        940,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "24",
+      "name": "Merge Post Meta",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1060,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Input: merged payload from Prepare Input meta + Claude response. No node-name references used.\nfunction extractJsonText(s){\n  let t = String(s || '').trim().replace(/^```(json)?/i,'').replace(/```$/,'').trim();\n  const start = t.indexOf('{');\n  const end = t.lastIndexOf('}');\n  if(start >= 0 && end > start) t = t.slice(start, end + 1);\n  return t;\n}\nfunction repairJson(s){\n  let out = '';\n  let inStr = false;\n  let escaped = false;\n  for(let i = 0; i < s.length; i++){\n    const ch = s[i];\n    if(inStr){\n      if(escaped){ out += ch; escaped = false; continue; }\n      if(ch === '\\\\'){ out += ch; escaped = true; continue; }\n      if(ch === '\\n'){ out += '\\\\n'; continue; }\n      if(ch === '\\r'){ out += '\\\\r'; continue; }\n      if(ch === '\\t'){ out += '\\\\t'; continue; }\n      if(ch === '\"'){\n        let j = i + 1;\n        while(j < s.length && /\\s/.test(s[j])) j++;\n        const nx = s[j] || '';\n        if(nx === '' || nx === ':' || nx === ',' || nx === '}' || nx === ']'){ inStr = false; out += ch; continue; }\n        out += '\\\\\"'; continue;\n      }\n      out += ch;\n    } else {\n      out += ch;\n      if(ch === '\"') inStr = true;\n    }\n  }\n  return out;\n}\nlet content;\ntry {\n  const blocks = items[0].json.content || [];\n  const textBlock = blocks.find(b => b.type === 'text');\n  const text = textBlock ? textBlock.text : undefined;\n  try {\n    content = JSON.parse(text);\n  } catch(e1) {\n    console.warn('First JSON parse failed, attempting repair: ' + e1.message);\n    content = JSON.parse(repairJson(extractJsonText(text)));\n    console.warn('Repaired malformed JSON from Claude');\n  }\n} catch (e) {\n  throw new Error('Claude did not return valid JSON: ' + e.message);\n}\n\n// Self-heal AI style misses instead of failing the whole run\nconst stripEmDash = s => String(s || '').replace(/\\u2014/g, ' - ');\nlet emDashFound = false;\nfor (const k of ['title','description','excerpt']) {\n  if (String(content[k] || '').includes('\\u2014')) { emDashFound = true; content[k] = stripEmDash(content[k]); }\n}\nif (content.bodyMarkdown && String(content.bodyMarkdown).includes('\\u2014')) { emDashFound = true; content.bodyMarkdown = stripEmDash(content.bodyMarkdown); }\nif (emDashFound) console.warn('Removed em dash(es) from output');\n\nlet description = String(content.description || '').trim();\nlet metaWords = description.split(/\\s+/).filter(Boolean).length;\nif (metaWords > 20) {\n  description = description.split(/\\s+/).slice(0, 20).join(' ').replace(/[,;:.\\-]+$/, '') + '.';\n  metaWords = description.split(/\\s+/).filter(Boolean).length;\n  console.warn('Trimmed meta description to ' + metaWords + ' words');\n}\nif (metaWords < 17 || metaWords > 20) console.warn('Meta description off target (17-20 words): got ' + metaWords);\ncontent.description = description;\n\nconst meta = items[0].json;\nconst fk = String(meta.focusKeyword || '').toLowerCase();\nif (fk && !String(content.title || '').toLowerCase().includes(fk)) console.warn('Title may not contain focus keyword: ' + fk);\nconst frontmatter = {\n  title: content.title,\n  description: content.description,\n  featuredImage: '/images/posts/' + meta.slug + '.webp',\n  category: meta.normalizedCategory,\n  stage: meta.stage,\n  date: meta.date,\n  updated: meta.updated,\n  excerpt: content.excerpt,\n  keywords: content.keywords,\n  featured: content.featured || false\n};\nconst DOWNLOAD_FILES = {\n  'chore-chart': '/downloads/chore-chart-printable.pdf',\n  'feelings-chart': '/downloads/feelings-chart-printable.pdf',\n  'routine-cards': '/downloads/daily-routine-cards.pdf',\n  'checklist': '/downloads/printable-checklist.pdf'\n};\nconst downloadHref = DOWNLOAD_FILES[content.downloadType] || null;\nif (downloadHref) {\n  frontmatter.download = downloadHref;\n  frontmatter.downloadTitle = content.downloadIdea || 'Free printable';\n} else if (content.downloadType) {\n  console.warn('Unknown downloadType, no file linked: ' + content.downloadType);\n}\nlet bodyMd = content.bodyMarkdown;\nif (downloadHref) {\n  const ctaTitle = String(content.downloadIdea || 'Free printable').replace(/\"/g, '');\n  bodyMd = bodyMd + '\\n\\n<DownloadCta title=\"' + ctaTitle + '\" href=\"' + downloadHref + '\" />';\n}\n\nconst lines = Object.entries(frontmatter)\n  .filter(([,v]) => v !== undefined && v !== null)\n  .map(([k,v]) => {\n    if (Array.isArray(v)) return k + ': [' + v.map(x => '\"' + String(x).replace(/\"/g,'\\\\\"') + '\"').join(', ') + ']';\n    if (typeof v === 'string') return k + ': \"' + v.replace(/\"/g,'\\\\\"') + '\"';\n    return k + ': ' + v;\n  });\n\nconst fullMdx = '---\\n' + lines.join('\\n') + '\\n---\\n\\n' + bodyMd;\n\nreturn [{\n  json: {\n    rowIndex: meta.rowIndex,\n    notes: meta.notes,\n    keyword: meta.focusKeyword,\n    slug: meta.slug,\n    title: content.title,\n    description: content.description,\n    excerpt: content.excerpt,\n    keywords: content.keywords,\n    downloadIdea: content.downloadIdea || null,\n    featured: content.featured || false,\n    metaWordCount: metaWords,\n    fullMdx,\n    mdxBase64: Buffer.from(fullMdx, 'utf8').toString('base64')\n  }\n}];"
+      },
+      "id": "5",
+      "name": "Assemble MDX",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/ultrarevisions-bit/raising-on-purpose/contents/content/posts/{{ $json.slug }}.mdx",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"feat: add post {{ $json.slug }}\",\n  \"content\": \"{{ $json.mdxBase64 }}\",\n  \"branch\": \"main\"\n}",
+        "options": {}
+      },
+      "id": "10",
+      "name": "GitHub - Create MDX File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1420,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "25",
+      "name": "Merge Upload Result",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Final step: mark the row Done in the sheet. Images are pre-uploaded manually to GitHub.\nconst content = items[0].json;\nreturn [{\n  json: {\n    rowIndex: content.rowIndex,\n    keyword: content.keyword,\n    status: 'Done',\n    notes: content.notes || '',\n    featured: content.featured ? 'TRUE' : 'FALSE',\n    slug: content.slug,\n    imageUrl: content.coverImageUrl || '/images/posts/' + content.slug + '.webp',\n    title: content.title,\n    description: content.description,\n    generatedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "15",
+      "name": "Finalize",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Keyword": "={{ $json.keyword }}",
+            "Status": "={{ $json.status }}",
+            "Notes": "={{ $json.notes }}",
+            "Featured": "={{ $json.featured }}",
+            "Slug": "={{ $json.slug }}",
+            "Image URL": "={{ $json.imageUrl }}",
+            "Generated Title": "={{ $json.title }}",
+            "Meta Description": "={{ $json.description }}",
+            "Generated At": "={{ $json.generatedAt }}",
+            "Featured Flag": "={{ $json.featured }}"
+          },
+          "matchingColumns": [
+            "Keyword"
+          ],
+          "schema": [
+            {
+              "id": "Keyword",
+              "displayName": "Keyword",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Featured",
+              "displayName": "Featured",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Slug",
+              "displayName": "Slug",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Image URL",
+              "displayName": "Image URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Generated Title",
+              "displayName": "Generated Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Meta Description",
+              "displayName": "Meta Description",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Generated At",
+              "displayName": "Generated At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Featured Flag",
+              "displayName": "Featured Flag",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "16",
+      "name": "Google Sheets - Update Row (Mark Done)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1900,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": "Google Sheets Account"
+      }
+    }
+  ],
+  "connections": {
+    "Google Sheets - Poll Twice Daily (6AM & 2PM)": {
+      "main": [
+        [
+          {
+            "node": "Filter - One Ready Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter - One Ready Topic": {
+      "main": [
+        [
+          {
+            "node": "Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Input": {
+      "main": [
+        [
+          {
+            "node": "Claude - Generate Post Content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Post Meta",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Claude - Generate Post Content": {
+      "main": [
+        [
+          {
+            "node": "Merge Post Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble MDX": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Create MDX File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Upload Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Create MDX File": {
+      "main": [
+        [
+          {
+            "node": "Merge Upload Result",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Finalize": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Update Row (Mark Done)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Post Meta": {
+      "main": [
+        [
+          {
+            "node": "Assemble MDX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Upload Result": {
+      "main": [
+        [
+          {
+            "node": "Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "1"
+}

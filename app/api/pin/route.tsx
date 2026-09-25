@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
+import sharp from "sharp";
 
 // Renders a Pinterest-style pin (1200x1800, 2:3):
 // cover photo on top + sage brand panel with category eyebrow + serif title.
@@ -56,18 +57,30 @@ export async function GET(req: NextRequest) {
   if (dmSans)
     fonts.push({ name: "DM Sans", data: dmSans, weight: 700, style: "normal" });
 
-  // Verify the cover actually exists; otherwise render the text-only variant
-  // (satori throws on unresolvable image URLs, so never pass a dead link).
-  let imgOk = false;
+  // Satori/resvg cannot decode webp, so convert covers to JPEG data URIs
+  // with sharp (all covers are .webp). Fresh fetch each time so
+  // late-uploaded covers are picked up immediately.
+  let embedSrc = "";
   if (img) {
     try {
-      const check = await fetch(img, { next: { revalidate: 3600 } });
-      const ct = check.headers.get("content-type") || "";
-      imgOk = check.ok && ct.startsWith("image/");
+      const res = await fetch(img, { cache: "no-store" });
+      const ct = res.headers.get("content-type") || "";
+      if (res.ok && ct.startsWith("image/")) {
+        const buf = Buffer.from(await res.arrayBuffer());
+        const jpg = ct.includes("webp")
+          ? await sharp(buf)
+              .resize(1200, null, { withoutEnlargement: true })
+              .jpeg({ quality: 82 })
+              .toBuffer()
+          : buf;
+        const mime = ct.includes("webp") ? "image/jpeg" : ct.split(";")[0];
+        embedSrc = "data:" + mime + ";base64," + jpg.toString("base64");
+      }
     } catch {
-      imgOk = false;
+      embedSrc = "";
     }
   }
+  const imgOk = embedSrc !== "";
 
   // Without a photo the panel goes full-height so the pin still looks
   // intentional instead of an empty block above a small panel.
@@ -99,7 +112,7 @@ export async function GET(req: NextRequest) {
         {imgOk ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={img}
+            src={embedSrc}
             width={1200}
             height={1120}
             style={{ objectFit: "cover" }}

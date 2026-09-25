@@ -55,7 +55,7 @@
         300
       ],
       "parameters": {
-        "functionCode": "var SITE = 'https://raisingonpurpose.vercel.app';\nfunction slugify(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }\nvar LABELS = { 'intentional-parenting': 'Intentional Parenting', 'real-talk': 'Real Talk', 'toddler': 'Toddler Years', 'family-routines': 'Family Routines', 'printables': 'Printables' };\nvar TAGS = { 'intentional-parenting': '#gentleparenting', 'real-talk': '#honestmotherhood', 'toddler': '#toddlerlife', 'family-routines': '#familyroutines', 'printables': '#freeprintables' };\nvar rows = items.map(function (i) { return i.json; });\nvar queue = rows.filter(function (r) {\n  var st = String(r['Status'] || '').toLowerCase().trim();\n  var pinned = String(r['Pinned'] || '').toLowerCase().trim() === 'true';\n  return st === 'done' && !pinned && r['Slug'] && r['Generated Title'];\n});\nif (!queue.length) { return []; }\nqueue.sort(function (a, b) { return String(a['Generated At'] || a['Date'] || 'z').localeCompare(String(b['Generated At'] || b['Date'] || 'z')); });\nvar r = queue[0];\nvar slug = String(r['Slug']).trim().replace(/\\.mdx$/i, '');\nvar cat = slugify(r['Category']) || 'family-routines';\nvar title = String(r['Generated Title']).trim();\nvar desc = String(r['Meta Description'] || r['Blog Post Topic'] || title).trim();\nvar cover = String(r['Image URL'] || '').trim();\nif (cover.charAt(0) === '/') { cover = SITE + cover; }\nvar postUrl = SITE + '/' + cat + '/' + slug;\nvar pinUrl = SITE + '/api/pin?title=' + encodeURIComponent(title) + '&eyebrow=' + encodeURIComponent(LABELS[cat] || cat) + '&img=' + encodeURIComponent(cover);\nif (cat === 'printables') { pinUrl = pinUrl + '&badge=' + encodeURIComponent('FREE PRINTABLE'); }\nvar text = desc + '\\n\\nRead the full post at the link.' + '\\n\\n#parenting #momlife #intentionalparenting ' + (TAGS[cat] || '#family');\nreturn [{ json: { slug: slug, title: title, postUrl: postUrl, pinUrl: pinUrl, pinText: text, keyword: String(r['Keyword'] || '') } }];"
+        "functionCode": "var SITE = 'https://raisingonpurpose.vercel.app';\nfunction slugify(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }\nvar LABELS = { 'intentional-parenting': 'Intentional Parenting', 'real-talk': 'Real Talk', 'toddler': 'Toddler Years', 'family-routines': 'Family Routines', 'printables': 'Printables' };\nvar TAGS = { 'intentional-parenting': '#gentleparenting', 'real-talk': '#honestmotherhood', 'toddler': '#toddlerlife', 'family-routines': '#familyroutines', 'printables': '#freeprintables' };\nvar rows = items.map(function (i) { return i.json; });\nvar queue = rows.filter(function (r) {\n  var st = String(r['Status'] || '').toLowerCase().trim();\n  var pinned = String(r['Pinned'] || '').toLowerCase().trim() === 'true';\n  return st === 'done' && !pinned && r['Slug'] && r['Generated Title'];\n});\nif (!queue.length) { return []; }\nqueue.sort(function (a, b) { return String(a['Generated At'] || a['Date'] || 'z').localeCompare(String(b['Generated At'] || b['Date'] || 'z')); });\nvar r = queue[0];\nvar slug = String(r['Slug']).trim().replace(/\\.mdx$/i, '');\nvar cat = slugify(r['Category']) || 'family-routines';\nvar title = String(r['Generated Title']).trim();\nvar desc = String(r['Meta Description'] || r['Blog Post Topic'] || title).trim();\nvar cover = String(r['Image URL'] || '').trim();\nif (cover.charAt(0) === '/') { cover = SITE + cover; }\nvar postUrl = SITE + '/' + cat + '/' + slug;\nvar pinUrl = SITE + '/api/pin?title=' + encodeURIComponent(title) + '&eyebrow=' + encodeURIComponent(LABELS[cat] || cat) + '&img=' + encodeURIComponent(cover);\nif (cat === 'printables') { pinUrl = pinUrl + '&badge=' + encodeURIComponent('FREE PRINTABLE'); }\nvar text = desc + '\\n\\nRead the full post at the link.' + '\\n\\n#parenting #momlife #intentionalparenting ' + (TAGS[cat] || '#family');\nreturn [{ json: { slug: slug, title: title, postUrl: postUrl, pinUrl: pinUrl, pinText: text, keyword: String(r['Keyword'] || ''), coverAbs: cover, catSlug: cat } }];"
       }
     },
     {
@@ -63,7 +63,7 @@
       "type": "@bufferapp/n8n-nodes-buffer.buffer",
       "typeVersion": 1,
       "position": [
-        920,
+        1360,
         300
       ],
       "credentials": {
@@ -93,7 +93,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        1160,
+        1580,
         300
       ],
       "credentials": {
@@ -163,10 +163,36 @@
         60
       ],
       "parameters": {
-        "content": "## Setup (do once)\n1. Install the Buffer community node in n8n (Settings > Community nodes > @bufferapp/n8n-nodes-buffer) and create the `Buffer account` credential with your personal API key (Buffer > Settings > API; longest expiration).\n2. Open `Buffer - Create Pin Post` and pick Organization, Channel (Pinterest), and Pinterest Board from the dropdowns. Text / Title / URLs are pre-wired; Alt Text = post title; Thumbnail left empty (optional).\n3. Replace YOUR_GOOGLE_SHEET_ID_HERE (Read Sheet + Mark Pinned). Add `Pinned` and `Pinned At` columns to the same sheet.\n4. Verify the destination URL pattern: posts live at SITE/category/slug. If a run 404s, fix that row Slug/Category in the sheet.\n5. Schedule = 9:00 + 15:00 SERVER time (Railway = UTC: set N8N_DEFAULT_TIMEZONE or shift cron). Pins join the channel queue (Add to Queue). One run = one pin; empty queue = silent stop.",
+        "content": "## Setup (do once)\n1. Install the Buffer community node in n8n (Settings > Community nodes > @bufferapp/n8n-nodes-buffer) and create the `Buffer account` credential with your personal API key (Buffer > Settings > API; longest expiration).\n2. Open `Buffer - Create Pin Post` and pick Organization, Channel (Pinterest), and Pinterest Board from the dropdowns. Text / Title / URLs are pre-wired; Alt Text = post title; Thumbnail left empty (optional).\n3. Replace YOUR_GOOGLE_SHEET_ID_HERE (Read Sheet + Mark Pinned). Add `Pinned` and `Pinned At` columns to the same sheet.\n4. Destination URLs self-heal: Resolve Post URL matches the slug against /sitemap.xml and uses the REAL post URL (sheet Category typos like family-routines-rhythms are bypassed). Falls back to the sheet-built URL if the post is not deployed yet.\n5. Schedule = 9:00 + 15:00 SERVER time (Railway = UTC: set N8N_DEFAULT_TIMEZONE or shift cron). Pins join the channel queue (Add to Queue). One run = one pin; empty queue = silent stop.",
         "height": 220,
         "width": 1500,
         "color": 5
+      }
+    },
+    {
+      "name": "Fetch Sitemap",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        920,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://raisingonpurpose.vercel.app/sitemap.xml",
+        "options": {}
+      }
+    },
+    {
+      "name": "Resolve Post URL",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        300
+      ],
+      "parameters": {
+        "functionCode": "var raw = items[0].json;\nvar xml = (typeof raw === 'string') ? raw : (raw.data || raw);\nxml = String(xml || '');\nvar pin = $('Pick Next Pin').first().json;\nvar SITE = pin.pinUrl.split('/api/pin')[0];\nfunction slugify(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }\nvar LABELS = { 'intentional-parenting': 'Intentional Parenting', 'real-talk': 'Real Talk', 'toddler': 'Toddler Years', 'family-routines': 'Family Routines', 'printables': 'Printables' };\nvar slug = pin.slug;\nvar locs = [];\nvar re = /<loc>([^<]+)<\\/loc>/g;\nvar m;\nwhile ((m = re.exec(xml)) !== null) { locs.push(m[1].trim()); }\nvar found = '';\nfor (var k = 0; k < locs.length; k++) {\n  var u = locs[k].replace(/\\/$/, '');\n  if (u.slice(-(slug.length + 1)) === '/' + slug) { found = u; break; }\n}\nvar postUrl, catLabel;\nif (found) {\n  postUrl = found;\n  var segs = found.split('/');\n  var catSeg = segs.length > 2 ? segs[segs.length - 2] : pin.catSlug;\n  catLabel = LABELS[slugify(catSeg)] || catSeg;\n} else {\n  postUrl = pin.postUrl;\n  console.warn('Slug not in sitemap, using sheet-built URL: ' + postUrl);\n  var em = /[?&]eyebrow=([^&]*)/.exec(pin.pinUrl);\n  catLabel = em ? decodeURIComponent(em[1].replace(/\\+/g, ' ')) : pin.catSlug;\n}\nvar pinUrl = SITE + '/api/pin?title=' + encodeURIComponent(pin.title) + '&eyebrow=' + encodeURIComponent(catLabel) + '&img=' + encodeURIComponent(pin.coverAbs);\nif (catLabel === 'Printables') { pinUrl = pinUrl + '&badge=' + encodeURIComponent('FREE PRINTABLE'); }\nreturn [{ json: { slug: slug, title: pin.title, postUrl: postUrl, pinUrl: pinUrl, pinText: pin.pinText, keyword: pin.keyword } }];"
       }
     }
   ],
@@ -197,7 +223,7 @@
       "main": [
         [
           {
-            "node": "Buffer - Create Pin Post",
+            "node": "Fetch Sitemap",
             "type": "main",
             "index": 0
           }
@@ -209,6 +235,28 @@
         [
           {
             "node": "Mark Pinned",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Sitemap": {
+      "main": [
+        [
+          {
+            "node": "Resolve Post URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Post URL": {
+      "main": [
+        [
+          {
+            "node": "Buffer - Create Pin Post",
             "type": "main",
             "index": 0
           }

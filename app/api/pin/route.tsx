@@ -7,11 +7,10 @@ import sharp from "sharp";
 // Used by the n8n Pinterest workflow via:
 //   /api/pin?title=...&eyebrow=...&img=...&badge=...
 
-const SAGE_DARK = "#5D6B50";
-const CREAM = "#FAF6EF";
-const TERRA_LIGHT = "#E2A98C";
-const TERRA = "#C96F4A";
-const INK = "#3B2E26";
+const PANEL = "#5C4A3D";
+const CREAM = "#F5EDE4";
+const EYEBROW = "#C97B5C";
+const BADGE = "#C97B5C";
 
 async function loadFont(
   family: string,
@@ -105,7 +104,7 @@ export async function GET(req: NextRequest) {
           height: 1800,
           display: "flex",
           flexDirection: "column",
-          backgroundColor: SAGE_DARK,
+          backgroundColor: PANEL,
           position: "relative",
         }}
       >
@@ -127,7 +126,7 @@ export async function GET(req: NextRequest) {
             left: 48,
             display: "flex",
             alignItems: "center",
-            backgroundColor: "rgba(59,46,38,0.62)",
+            backgroundColor: "rgba(92,74,61,0.62)",
             borderRadius: 999,
             padding: "14px 30px",
             color: CREAM,
@@ -148,14 +147,14 @@ export async function GET(req: NextRequest) {
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
-            backgroundColor: SAGE_DARK,
+            backgroundColor: PANEL,
             padding: "64px 84px",
           }}
         >
           <div
             style={{
               display: "flex",
-              color: TERRA_LIGHT,
+              color: EYEBROW,
               fontFamily: dmSans ? "'DM Sans', sans-serif" : "sans-serif",
               fontWeight: 700,
               fontSize: 34,
@@ -188,7 +187,7 @@ export async function GET(req: NextRequest) {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  backgroundColor: TERRA,
+                  backgroundColor: BADGE,
                   borderRadius: 999,
                   padding: "12px 30px",
                   color: CREAM,

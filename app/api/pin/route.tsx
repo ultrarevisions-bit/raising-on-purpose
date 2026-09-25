@@ -56,9 +56,6 @@ export async function GET(req: NextRequest) {
   if (dmSans)
     fonts.push({ name: "DM Sans", data: dmSans, weight: 700, style: "normal" });
 
-  // Shrink long titles so they fit the panel without overflow.
-  const titleSize = title.length > 95 ? 70 : title.length > 65 ? 82 : 94;
-
   // Verify the cover actually exists; otherwise render the text-only variant
   // (satori throws on unresolvable image URLs, so never pass a dead link).
   let imgOk = false;
@@ -72,6 +69,21 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Without a photo the panel goes full-height so the pin still looks
+  // intentional instead of an empty block above a small panel.
+  const titleSize = imgOk
+    ? title.length > 95
+      ? 70
+      : title.length > 65
+        ? 82
+        : 94
+    : title.length > 95
+      ? 92
+      : title.length > 65
+        ? 104
+        : 118;
+  const panelHeight = imgOk ? 680 : 1800;
+
   return new ImageResponse(
     (
       <div
@@ -80,7 +92,7 @@ export async function GET(req: NextRequest) {
           height: 1800,
           display: "flex",
           flexDirection: "column",
-          backgroundColor: INK,
+          backgroundColor: SAGE_DARK,
           position: "relative",
         }}
       >
@@ -92,11 +104,7 @@ export async function GET(req: NextRequest) {
             height={1120}
             style={{ objectFit: "cover" }}
           />
-        ) : (
-          <div
-            style={{ width: 1200, height: 1120, backgroundColor: "#7A8B69" }}
-          />
-        )}
+        ) : null}
 
         {/* Brand pill */}
         <div
@@ -123,7 +131,7 @@ export async function GET(req: NextRequest) {
         <div
           style={{
             width: 1200,
-            height: 680,
+            height: panelHeight,
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",

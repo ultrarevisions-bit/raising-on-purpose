@@ -55,162 +55,36 @@
         300
       ],
       "parameters": {
-        "functionCode": "var SITE = 'https://raisingonpurpose.vercel.app';\nfunction slugify(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }\nvar LABELS = { 'intentional-parenting': 'Intentional Parenting', 'real-talk': 'Real Talk', 'toddler': 'Toddler Years', 'family-routines': 'Family Routines', 'printables': 'Printables' };\nvar TAGS = { 'intentional-parenting': '#gentleparenting', 'real-talk': '#honestmotherhood', 'toddler': '#toddlerlife', 'family-routines': '#familyroutines', 'printables': '#freeprintables' };\nvar rows = items.map(function (i) { return i.json; });\nvar queue = rows.filter(function (r) {\n  var st = String(r['Status'] || '').toLowerCase().trim();\n  var pinned = String(r['Pinned'] || '').toLowerCase().trim() === 'true';\n  return st === 'done' && !pinned && r['Slug'] && r['Generated Title'];\n});\nif (!queue.length) { return []; }\nqueue.sort(function (a, b) { return String(a['Generated At'] || a['Date'] || 'z').localeCompare(String(b['Generated At'] || b['Date'] || 'z')); });\nvar r = queue[0];\nvar slug = String(r['Slug']).trim();\nvar cat = slugify(r['Category']) || 'family-routines';\nvar title = String(r['Generated Title']).trim();\nvar desc = String(r['Meta Description'] || r['Blog Post Topic'] || title).trim();\nvar cover = String(r['Image URL'] || '').trim();\nif (cover.charAt(0) === '/') { cover = SITE + cover; }\nvar postUrl = SITE + '/' + cat + '/' + slug;\nvar pinUrl = SITE + '/api/pin?title=' + encodeURIComponent(title) + '&eyebrow=' + encodeURIComponent(LABELS[cat] || cat) + '&img=' + encodeURIComponent(cover);\nif (cat === 'printables') { pinUrl = pinUrl + '&badge=' + encodeURIComponent('FREE PRINTABLE'); }\nvar text = desc + '\\n\\nRead the full post at the link.' + '\\n\\n#parenting #momlife #intentionalparenting ' + (TAGS[cat] || '#family');\nreturn [{ json: { slug: slug, title: title, postUrl: postUrl, pinUrl: pinUrl, pinText: text, keyword: String(r['Keyword'] || '') } }];"
+        "functionCode": "var SITE = 'https://raisingonpurpose.vercel.app';\nfunction slugify(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }\nvar LABELS = { 'intentional-parenting': 'Intentional Parenting', 'real-talk': 'Real Talk', 'toddler': 'Toddler Years', 'family-routines': 'Family Routines', 'printables': 'Printables' };\nvar TAGS = { 'intentional-parenting': '#gentleparenting', 'real-talk': '#honestmotherhood', 'toddler': '#toddlerlife', 'family-routines': '#familyroutines', 'printables': '#freeprintables' };\nvar rows = items.map(function (i) { return i.json; });\nvar queue = rows.filter(function (r) {\n  var st = String(r['Status'] || '').toLowerCase().trim();\n  var pinned = String(r['Pinned'] || '').toLowerCase().trim() === 'true';\n  return st === 'done' && !pinned && r['Slug'] && r['Generated Title'];\n});\nif (!queue.length) { return []; }\nqueue.sort(function (a, b) { return String(a['Generated At'] || a['Date'] || 'z').localeCompare(String(b['Generated At'] || b['Date'] || 'z')); });\nvar r = queue[0];\nvar slug = String(r['Slug']).trim().replace(/\\.mdx$/i, '');\nvar cat = slugify(r['Category']) || 'family-routines';\nvar title = String(r['Generated Title']).trim();\nvar desc = String(r['Meta Description'] || r['Blog Post Topic'] || title).trim();\nvar cover = String(r['Image URL'] || '').trim();\nif (cover.charAt(0) === '/') { cover = SITE + cover; }\nvar postUrl = SITE + '/' + cat + '/' + slug;\nvar pinUrl = SITE + '/api/pin?title=' + encodeURIComponent(title) + '&eyebrow=' + encodeURIComponent(LABELS[cat] || cat) + '&img=' + encodeURIComponent(cover);\nif (cat === 'printables') { pinUrl = pinUrl + '&badge=' + encodeURIComponent('FREE PRINTABLE'); }\nvar text = desc + '\\n\\nRead the full post at the link.' + '\\n\\n#parenting #momlife #intentionalparenting ' + (TAGS[cat] || '#family');\nreturn [{ json: { slug: slug, title: title, postUrl: postUrl, pinUrl: pinUrl, pinText: text, keyword: String(r['Keyword'] || '') } }];"
       }
     },
     {
-      "name": "Buffer: Get Orgs",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [
-        900,
-        300
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.buffer.com",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer YOUR_BUFFER_API_KEY"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "{\"query\": \"query { account { organizations { id name } } }\"}",
-        "options": {}
-      }
-    },
-    {
-      "name": "Take Org + Build Channels Query",
-      "type": "n8n-nodes-base.function",
+      "name": "Buffer - Create Pin Post",
+      "type": "@bufferapp/n8n-nodes-buffer.buffer",
       "typeVersion": 1,
       "position": [
-        1120,
+        920,
         300
       ],
+      "credentials": {
+        "bufferApi": {
+          "id": null,
+          "name": "Buffer account"
+        }
+      },
       "parameters": {
-        "functionCode": "var body = items[0].json;\nif (body.errors) { throw new Error('Buffer API (orgs): ' + body.errors.map(function (e) { return e.message; }).join('; ')); }\nvar orgs = (body.data && body.data.account && body.data.account.organizations) || [];\nif (!orgs.length) { throw new Error('No Buffer organizations found for this API key.'); }\nvar pin = $('Pick Next Pin').first().json;\nvar q = 'query GetChannels { channels(input: { organizationId: \"' + orgs[0].id + '\" }) { id name service } }';\nreturn [{ json: {\n  orgId: orgs[0].id, orgName: orgs[0].name,\n  slug: pin.slug, title: pin.title, postUrl: pin.postUrl, pinUrl: pin.pinUrl, pinText: pin.pinText, keyword: pin.keyword,\n  payload: JSON.stringify({ query: q })\n} }];"
-      }
-    },
-    {
-      "name": "Buffer: Get Channels",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [
-        1340,
-        300
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.buffer.com",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer YOUR_BUFFER_API_KEY"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ $json.payload }}",
-        "options": {}
-      }
-    },
-    {
-      "name": "Take Pinterest Channel + Build Boards Query",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [
-        1560,
-        300
-      ],
-      "parameters": {
-        "functionCode": "var body = items[0].json;\nif (body.errors) { throw new Error('Buffer API (channels): ' + body.errors.map(function (e) { return e.message; }).join('; ')); }\nvar list = (body.data && body.data.channels) || [];\nvar found = null;\nfor (var k = 0; k < list.length; k++) {\n  if (String(list[k].service || '').toLowerCase() === 'pinterest') { found = list[k]; break; }\n}\nif (!found) { throw new Error('No Pinterest channel connected in Buffer. Connect it under Publishing > Channels first.'); }\nvar prev = $('Take Org + Build Channels Query').first().json;\nvar q = 'query GetBoards { channel(input: { id: \"' + found.id + '\" }) { metadata { ... on PinterestMetadata { boards { serviceId name } } } } }';\nreturn [{ json: {\n  channelId: found.id, channelName: found.name,\n  slug: prev.slug, title: prev.title, postUrl: prev.postUrl, pinUrl: prev.pinUrl, pinText: prev.pinText, keyword: prev.keyword,\n  payload: JSON.stringify({ query: q })\n} }];"
-      }
-    },
-    {
-      "name": "Buffer: Get Boards",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [
-        1780,
-        300
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.buffer.com",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer YOUR_BUFFER_API_KEY"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ $json.payload }}",
-        "options": {}
-      }
-    },
-    {
-      "name": "Take Board + Build Pin Mutation",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [
-        2000,
-        300
-      ],
-      "parameters": {
-        "functionCode": "var body = items[0].json;\nif (body.errors) { throw new Error('Buffer API (boards): ' + body.errors.map(function (e) { return e.message; }).join('; ')); }\nvar ch = (body.data && body.data.channel) || {};\nvar boards = (ch.metadata && ch.metadata.boards) || [];\nif (!boards.length) { throw new Error('No boards found on the Pinterest channel. Create at least one board in Pinterest first.'); }\nvar prev = $('Take Pinterest Channel + Build Boards Query').first().json;\nvar query = 'mutation QueuePin($text: String!, $imageUrl: String!, $link: String!, $pinTitle: String!) {';\nquery = query + ' createPost(input: { channelId: \"' + prev.channelId + '\", text: $text, schedulingType: automatic, mode: addToQueue,';\nquery = query + ' assets: [{ image: { url: $imageUrl } }],';\nquery = query + ' metadata: { pinterest: { boardServiceId: \"' + boards[0].serviceId + '\", title: $pinTitle, url: $link } } }) {';\nquery = query + ' ... on PostActionSuccess { post { id text dueAt } } ... on MutationError { message } } }';\nreturn [{ json: {\n  slug: prev.slug, boardName: boards[0].name || boards[0].serviceId,\n  payload: JSON.stringify({ query: query, variables: { text: prev.pinText, imageUrl: prev.pinUrl, link: prev.postUrl, pinTitle: prev.title } })\n} }];"
-      }
-    },
-    {
-      "name": "Buffer: Create Pin Post",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [
-        2220,
-        300
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.buffer.com",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer YOUR_BUFFER_API_KEY"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ $json.payload }}",
+        "resource": "post",
+        "operation": "create",
+        "organizationId": "",
+        "channelId": "",
+        "postText": "={{ $json.pinText }}",
+        "shareMode": "addToQueue",
+        "attachmentType": "image",
+        "imageUrl": "={{ $json.pinUrl }}",
+        "imageAltText": "={{ $json.title }}",
+        "pinterestBoardId": "",
+        "pinterestTitle": "={{ $json.title }}",
+        "pinterestUrl": "={{ $json.postUrl }}",
         "options": {}
       }
     },
@@ -219,7 +93,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        2440,
+        1160,
         300
       ],
       "credentials": {
@@ -240,7 +114,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "Slug": "={{ $(\"Take Board + Build Pin Mutation\").first().json.slug }}",
+            "Slug": "={{ $(\"Pick Next Pin\").first().json.slug }}",
             "Pinned": "TRUE",
             "Pinned At": "={{ $now.toISO() }}"
           },
@@ -289,7 +163,7 @@
         60
       ],
       "parameters": {
-        "content": "## Pinterest x Buffer setup (do once)\n1. API key: Buffer > Settings > API > Generate API Key (that exact screen). Keep ALL permissions checked. Set the LONGEST expiration (a 30-day key silently breaks this in a month). Paste the key over YOUR_BUFFER_API_KEY in the 4 Buffer HTTP nodes.\n2. Pinterest must be connected (Publishing > Channels). The workflow auto-finds the channel + uses its FIRST board. To pin to a different board, edit Take Board node: boards[0] -> boards[N].\n3. Replace YOUR_GOOGLE_SHEET_ID_HERE (Read Sheet + Mark Pinned). Add `Pinned` and `Pinned At` columns to the same sheet.\n4. Schedule runs 9:00 + 15:00 SERVER time. Railway = UTC: set env N8N_DEFAULT_TIMEZONE (e.g. America/New_York) or shift cron hours.\n5. Posts land in the Pinterest channel queue (addToQueue) and send on that channel posting schedule. One run = one pin (oldest Done + unpinned). Empty queue = run ends silently.",
+        "content": "## Setup (do once)\n1. Install the Buffer community node in n8n (Settings > Community nodes > @bufferapp/n8n-nodes-buffer) and create the `Buffer account` credential with your personal API key (Buffer > Settings > API; longest expiration).\n2. Open `Buffer - Create Pin Post` and pick Organization, Channel (Pinterest), and Pinterest Board from the dropdowns. Text / Title / URLs are pre-wired; Alt Text = post title; Thumbnail left empty (optional).\n3. Replace YOUR_GOOGLE_SHEET_ID_HERE (Read Sheet + Mark Pinned). Add `Pinned` and `Pinned At` columns to the same sheet.\n4. Verify the destination URL pattern: posts live at SITE/category/slug. If a run 404s, fix that row Slug/Category in the sheet.\n5. Schedule = 9:00 + 15:00 SERVER time (Railway = UTC: set N8N_DEFAULT_TIMEZONE or shift cron). Pins join the channel queue (Add to Queue). One run = one pin; empty queue = silent stop.",
         "height": 220,
         "width": 1500,
         "color": 5
@@ -323,80 +197,14 @@
       "main": [
         [
           {
-            "node": "Buffer: Get Orgs",
+            "node": "Buffer - Create Pin Post",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Buffer: Get Orgs": {
-      "main": [
-        [
-          {
-            "node": "Take Org + Build Channels Query",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Take Org + Build Channels Query": {
-      "main": [
-        [
-          {
-            "node": "Buffer: Get Channels",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Buffer: Get Channels": {
-      "main": [
-        [
-          {
-            "node": "Take Pinterest Channel + Build Boards Query",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Take Pinterest Channel + Build Boards Query": {
-      "main": [
-        [
-          {
-            "node": "Buffer: Get Boards",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Buffer: Get Boards": {
-      "main": [
-        [
-          {
-            "node": "Take Board + Build Pin Mutation",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Take Board + Build Pin Mutation": {
-      "main": [
-        [
-          {
-            "node": "Buffer: Create Pin Post",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Buffer: Create Pin Post": {
+    "Buffer - Create Pin Post": {
       "main": [
         [
           {

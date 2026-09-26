@@ -3,40 +3,6 @@
   "nodes": [
     {
       "parameters": {
-        "triggerTimes": {
-          "item": [
-            {
-              "mode": "everyDay",
-              "hour": 6,
-              "minute": 0
-            },
-            {
-              "mode": "everyDay",
-              "hour": 14,
-              "minute": 0
-            }
-          ]
-        },
-        "sheetId": "YOUR_GOOGLE_SHEET_ID_HERE",
-        "range": "A:P",
-        "options": {
-          "valueRenderMode": "FORMATTED_VALUE"
-        }
-      },
-      "id": "1",
-      "name": "Google Sheets - Poll Twice Daily (6AM & 2PM)",
-      "type": "n8n-nodes-base.googleSheetsTrigger",
-      "typeVersion": 1,
-      "position": [
-        220,
-        200
-      ],
-      "credentials": {
-        "googleSheetsOAuth2Api": "Google Sheets Account"
-      }
-    },
-    {
-      "parameters": {
         "functionCode": "// Sheet columns: A=Keyword, B=Search Volume, C=Competition, D=Blog Post Topic, E=Category, F=Stage, G=Status, H=Notes, I=Featured\nconst COL = { Keyword:'A', Topic:'D', Category:'E', Stage:'F', Status:'G', Notes:'H', Featured:'I' };\nfunction norm(s){ return String(s).toLowerCase().replace(/[\\s_-]+/g,''); }\nfunction getVal(item, names, colLetter){\n  const json = item.json || {};\n  for (const key of Object.keys(json)){\n    for (const name of names){ if (norm(key) === norm(name)) return json[key]; }\n  }\n  if (colLetter && json[colLetter] !== undefined) return json[colLetter];\n  const idx = colLetter ? colLetter.charCodeAt(0) - 65 : -1;\n  if (idx >= 0 && json[idx] !== undefined) return json[idx];\n  return undefined;\n}\n\nif (items.length > 0) console.log('Filter fields: ' + JSON.stringify(Object.keys(items[0].json || {})));\n\nconst ready = [];\nfor (const item of items) {\n  const status = String(getVal(item, ['Status'], COL.Status) || '').trim().toLowerCase();\n  if (status !== 'ready to write' && status !== 'ready') continue;\n  const topic = getVal(item, ['Blog Post Topic (Pinterest Format)','Blog Post Topic','Topic'], COL.Topic);\n  const category = getVal(item, ['Category'], COL.Category);\n  const keyword = getVal(item, ['Keyword','Focus Keyword'], COL.Keyword);\n  if (!topic || !category || !keyword) { console.warn('Skip ready row missing Topic/Category/Keyword'); continue; }\n  const rawIdx = item.index;\n  ready.push({ item, rowIndex: (rawIdx !== undefined && rawIdx !== null) ? rawIdx : 0 });\n}\n\nconsole.log('Ready topics: ' + ready.length + ' of ' + items.length);\nif (ready.length === 0) return [];\nready.sort((a,b) => a.rowIndex - b.rowIndex);\nconsole.log('Processing top ready row index: ' + ready[0].rowIndex);\nreturn [ready[0].item];"
       },
       "id": "2",
@@ -44,7 +10,7 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        460,
+        680,
         200
       ]
     },
@@ -57,7 +23,7 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        700,
+        920,
         200
       ]
     },
@@ -88,7 +54,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        940,
+        1160,
         200
       ]
     },
@@ -103,7 +69,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        1060,
+        1280,
         200
       ]
     },
@@ -116,7 +82,7 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        1180,
+        1400,
         200
       ]
     },
@@ -136,7 +102,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1420,
+        1640,
         120
       ]
     },
@@ -151,7 +117,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        1540,
+        1760,
         200
       ]
     },
@@ -164,7 +130,7 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        1660,
+        1880,
         200
       ]
     },
@@ -178,7 +144,7 @@
         },
         "sheetName": {
           "__rl": true,
-          "value": "Sheet1",
+          "value": "Shuffled Keywords",
           "mode": "name"
         },
         "columns": {
@@ -298,26 +264,60 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        1900,
+        2120,
         200
       ],
       "credentials": {
         "googleSheetsOAuth2Api": "Google Sheets Account"
       }
+    },
+    {
+      "name": "Schedule Twice Daily (6AM + 2PM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        200
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cron",
+              "expression": "0 6,14 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Read Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        440,
+        200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": "Google Sheets Account"
+      },
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Shuffled Keywords",
+          "mode": "name"
+        },
+        "options": {}
+      }
     }
   ],
   "connections": {
-    "Google Sheets - Poll Twice Daily (6AM & 2PM)": {
-      "main": [
-        [
-          {
-            "node": "Filter - One Ready Topic",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Filter - One Ready Topic": {
       "main": [
         [
@@ -410,6 +410,28 @@
         [
           {
             "node": "Finalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Twice Daily (6AM + 2PM)": {
+      "main": [
+        [
+          {
+            "node": "Read Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sheet": {
+      "main": [
+        [
+          {
+            "node": "Filter - One Ready Topic",
             "type": "main",
             "index": 0
           }

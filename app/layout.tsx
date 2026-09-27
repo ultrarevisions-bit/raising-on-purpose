@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { siteConfig } from "@/lib/site";
@@ -66,6 +67,9 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  verification: {
+    google: "O00KzEIQO-K6mDSLqJWGzYJ0unUa4UaeA6AKTpTPb-8",
+  },
 };
 
 export default function RootLayout({
@@ -75,6 +79,12 @@ export default function RootLayout({
     <html lang="en" className={`${cormorantGaramond.variable} ${dmSans.variable}`}>
       <head>
         <meta name="theme-color" content="#C96F4A" />
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1489847778172171"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </head>
       <body className="flex min-h-screen flex-col">
         <a className="skip-link" href="#main">

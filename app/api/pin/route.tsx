@@ -3,14 +3,14 @@ import type { NextRequest } from "next/server";
 import sharp from "sharp";
 
 // Renders a Pinterest-style pin (1200x1800, 2:3):
-// cover photo on top + sage brand panel with category eyebrow + serif title.
+// cover photo on top + terracotta brand panel with category eyebrow + serif title.
 // Used by the n8n Pinterest workflow via:
 //   /api/pin?title=...&eyebrow=...&img=...&badge=...
 
-const PANEL = "#5C4A3D";
-const CREAM = "#F5EDE4";
-const EYEBROW = "#C97B5C";
-const BADGE = "#C97B5C";
+const PANEL = "#C97B5C"; // terracotta — the bright pin color
+const CREAM = "#F5EDE4"; // title + badge text
+const EYEBROW = "#5C4A3D"; // deep umber eyebrow for contrast on terracotta
+const BADGE = "#5C4A3D"; // deep umber badge, cream text
 
 async function loadFont(
   family: string,
